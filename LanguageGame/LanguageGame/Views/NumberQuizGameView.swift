@@ -4,7 +4,6 @@ struct NumberQuizGameView: View {
     @StateObject private var game = NumberQuizGame()
     @EnvironmentObject var dataManager: DataManager
     
-    @State private var gameState: NumberQuizGameState = NumberQuizGameState()
     @State private var userInput = ""
     
     var body: some View {
@@ -23,7 +22,7 @@ struct NumberQuizGameView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // Question Prompt
-                if let prompt = gameState.currentPrompt {
+                if let prompt = game.gameState.currentPrompt {
                     VStack(spacing: 20) {
                         Text("What is the answer?")
                             .font(.headline)
@@ -52,7 +51,7 @@ struct NumberQuizGameView: View {
                         
                         // Input Field
                         VStack(spacing: 12) {
-                            switch gameState.currentPrompt {
+                            switch game.gameState.currentPrompt {
                             case .numberToWord(_):
                                 TextField("Enter the Bisaya word", text: $userInput)
                                     .textFieldStyle(.roundedBorder)
@@ -80,7 +79,7 @@ struct NumberQuizGameView: View {
                         }
                         
                         // Answer Feedback
-                        if let isCorrect = gameState.isAnswerCorrect {
+                        if let isCorrect = game.gameState.isAnswerCorrect {
                             VStack(spacing: 8) {
                                 if isCorrect {
                                     HStack {
@@ -146,17 +145,16 @@ struct NumberQuizGameView: View {
     }
     
     private func startNewGame() {
-        gameState = game.startNewGame()
+        _ = game.startNewGame()
         userInput = ""
     }
     
     private func submitAnswer() {
-        gameState = game.submitAnswer(userInput)
+        _ = game.submitAnswer(userInput)
     }
     
     private func nextQuestion() {
         game.nextQuestion()
-        gameState = game.startNewGame()
         userInput = ""
     }
 }

@@ -22,8 +22,8 @@ class HangmanGame: ObservableObject, Game {
     
     var difficulty: DifficultyLevel = .medium
     
+    @Published var gameState = HangmanGameState()
     private var currentWord: Vocabulary?
-    private var gameState = HangmanGameState()
     private var correctGuesses: Int = 0
     private var totalAttempts: Int = 0
     private var startTime: Date?

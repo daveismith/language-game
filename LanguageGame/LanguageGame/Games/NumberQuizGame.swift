@@ -24,7 +24,7 @@ class NumberQuizGame: ObservableObject, Game {
     
     var difficulty: DifficultyLevel = .medium
     
-    private var gameState = NumberQuizGameState()
+    @Published var gameState = NumberQuizGameState()
     private var correctGuesses: Int = 0
     private var totalAttempts: Int = 0
     private var startTime: Date?

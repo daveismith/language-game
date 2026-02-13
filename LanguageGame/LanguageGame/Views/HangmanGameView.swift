@@ -4,7 +4,6 @@ struct HangmanGameView: View {
     @StateObject private var game = HangmanGame()
     @EnvironmentObject var dataManager: DataManager
     
-    @State private var gameState: HangmanGameState = HangmanGameState()
     @State private var inputLetter = ""
     @State private var showHint = false
     @State private var hintText = ""
@@ -26,19 +25,19 @@ struct HangmanGameView: View {
                 
                 // Hangman Stage Visualization
                 VStack(spacing: 12) {
-                    HangmanStageView(stage: gameState.hangmanStage)
+                    HangmanStageView(stage: game.gameState.hangmanStage)
                         .frame(height: 150)
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
                     
-                    Text("Remaining: \(6 - gameState.hangmanStage)")
+                    Text("Remaining: \(6 - game.gameState.hangmanStage)")
                         .fontWeight(.semibold)
-                        .foregroundColor(gameState.hangmanStage >= 5 ? .red : .primary)
+                        .foregroundColor(game.gameState.hangmanStage >= 5 ? .red : .primary)
                 }
                 
                 // Display Word
-                Text(gameState.displayWord)
+                Text(game.gameState.displayWord)
                     .font(.system(.title, design: .monospaced))
                     .fontWeight(.bold)
                     .tracking(8)
@@ -47,9 +46,9 @@ struct HangmanGameView: View {
                     .cornerRadius(12)
                 
                 // Game Status
-                if gameState.isGameOver {
+                if game.gameState.isGameOver {
                     VStack(spacing: 12) {
-                        if gameState.isGameWon {
+                        if game.gameState.isGameWon {
                             Text("🎉 You Won!")
                                 .font(.title2)
                                 .fontWeight(.bold)
@@ -92,13 +91,13 @@ struct HangmanGameView: View {
                         }
                         
                         Button(action: toggleHint) {
-                            Text("💡 Hint (\(1 - gameState.hintsUsed))")
+                            Text("💡 Hint (\(1 - game.gameState.hintsUsed))")
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.orange.opacity(0.2))
                                 .cornerRadius(8)
                         }
-                        .disabled(gameState.hintsUsed >= 1)
+                        .disabled(game.gameState.hintsUsed >= 1)
                         
                         if showHint && !hintText.isEmpty {
                             Text(hintText)
@@ -121,7 +120,7 @@ struct HangmanGameView: View {
     }
     
     private func startNewGame() {
-        gameState = game.startNewGame()
+        _ = game.startNewGame()
         inputLetter = ""
         showHint = false
         hintText = ""
@@ -129,7 +128,7 @@ struct HangmanGameView: View {
     
     private func guessLetter() {
         guard !inputLetter.isEmpty else { return }
-        gameState = game.guessLetter(inputLetter)
+        _ = game.guessLetter(inputLetter)
         inputLetter = ""
     }
     

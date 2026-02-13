@@ -14,13 +14,13 @@ struct SettingsView: View {
             Form {
                 // Student Profile Section
                 Section(header: Text("Student Profile")) {
-                    TextField("Student Name", text: $studentName)
-                        .onAppear {
-                            studentName = gameManager.playerProgress.studentName
-                        }
-                        .onChange(of: studentName) { newValue in
-                            gameManager.updateStudentName(newValue)
-                        }
+                        TextField("Student Name", text: $studentName)
+                            .onAppear {
+                                studentName = gameManager.playerProgress.studentName
+                            }
+                            .onChange(of: studentName) { oldValue, newValue in
+                                gameManager.updateStudentName(newValue)
+                            }
                 }
                 
                 // Data Source Section
