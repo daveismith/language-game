@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - Number Quiz Game State
 
@@ -16,7 +17,7 @@ struct NumberQuizGameState {
 
 // MARK: - Number Quiz Game
 
-class NumberQuizGame: Game {
+class NumberQuizGame: ObservableObject, Game {
     let id = "numberQuiz"
     let name = "Number Quiz"
     let description = "Match Bisaya numbers to their numeric values"

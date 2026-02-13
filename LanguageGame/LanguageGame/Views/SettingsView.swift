@@ -26,7 +26,7 @@ struct SettingsView: View {
                 // Data Source Section
                 Section(
                     header: Text("Data Source"),
-                    footer: Text("Enter the GitHub URL (with or without .git) or local path to your Bisaya learning data repository")
+                    footer: Text("Enter a local path (/path/to/repo), file URL (file:///path), or GitHub URL (https://github.com/user/repo)")
                 ) {
                     VStack(spacing: 12) {
                         TextField("Repository URL", text: $dataSourceURL)

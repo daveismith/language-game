@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - Hangman Game State
 
@@ -14,7 +15,7 @@ struct HangmanGameState {
 
 // MARK: - Hangman Game
 
-class HangmanGame: Game {
+class HangmanGame: ObservableObject, Game {
     let id = "hangman"
     let name = "Hangman"
     let description = "Guess letters before the hangman is complete"

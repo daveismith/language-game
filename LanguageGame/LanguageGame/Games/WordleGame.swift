@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - Wordle Game State
 
@@ -13,7 +14,7 @@ struct WordleGameState {
 
 // MARK: - Wordle Game
 
-class WordleGame: Game {
+class WordleGame: ObservableObject, Game {
     let id = "wordle"
     let name = "Wordle"
     let description = "Guess the letters to find the Bisaya word"

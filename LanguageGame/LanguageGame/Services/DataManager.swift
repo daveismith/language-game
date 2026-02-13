@@ -36,9 +36,17 @@ class DataManager: NSObject, ObservableObject {
         }
         
         do {
-            let repoURL = normalizeGitURL(url)
-            try await cloneOrPullRepository(repoURL)
-            loadCachedData()
+            // Try to load from the provided path/URL
+            if url.hasPrefix("file://") || url.hasPrefix("/") {
+                // Local file path
+                try await loadFromLocalPath(url)
+            } else if url.hasPrefix("http://") || url.hasPrefix("https://") {
+                // Remote URL - fetch raw files
+                try await loadFromRemoteURL(url)
+            } else {
+                // Treat as local path
+                try await loadFromLocalPath(url)
+            }
             
             DispatchQueue.main.async {
                 self.isLoading = false
@@ -75,40 +83,83 @@ class DataManager: NSObject, ObservableObject {
     
     // MARK: - Private Methods
     
-    private func cloneOrPullRepository(_ repoURL: String) async throws {
-        let repoPath = cacheDirectory.appendingPathComponent("repo").path
+    private func loadFromLocalPath(_ path: String) async throws {
+        // Remove file:// prefix if present
+        var cleanPath = path
+        if cleanPath.hasPrefix("file://") {
+            cleanPath = String(cleanPath.dropFirst(7))
+        }
         
-        // Check if repo exists
-        if fileManager.fileExists(atPath: repoPath) {
-            // Pull latest changes
-            try await runCommand("git", arguments: ["-C", repoPath, "pull"])
-        } else {
-            // Clone repository
-            try await runCommand("git", arguments: ["clone", repoURL, repoPath])
+        let baseURL = URL(fileURLWithPath: cleanPath)
+        
+        // Try to load vocabulary.yaml
+        let vocabURL = baseURL.appendingPathComponent("vocabulary.yaml")
+        if fileManager.fileExists(atPath: vocabURL.path) {
+            let content = try String(contentsOf: vocabURL, encoding: .utf8)
+            if let vocabData = try YAMLDecoder().decode(VocabularyData.self, from: content) {
+                DispatchQueue.main.async {
+                    self.vocabulary = vocabData.vocabulary
+                }
+            }
+        }
+        
+        // Try to load numbers.yaml
+        let numbersURL = baseURL.appendingPathComponent("numbers.yaml")
+        if fileManager.fileExists(atPath: numbersURL.path) {
+            let content = try String(contentsOf: numbersURL, encoding: .utf8)
+            if let numbersData = try YAMLDecoder().decode(NumbersData.self, from: content) {
+                DispatchQueue.main.async {
+                    self.numbers = numbersData.numbers
+                }
+            }
         }
     }
     
-    private func runCommand(_ command: String, arguments: [String]) async throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-c", "\(command) \(arguments.joined(separator: " "))"]
-        
-        let pipe = Pipe()
-        process.standardError = pipe
-        process.standardOutput = pipe
-        
-        try process.run()
-        process.waitUntilExit()
-        
-        if process.terminationStatus != 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw DataFetchError.commandFailed(output)
+    private func loadFromRemoteURL(_ urlString: String) async throws {
+        var baseURLString = urlString
+        // Normalize the URL
+        if baseURLString.hasSuffix(".git") {
+            baseURLString = String(baseURLString.dropLast(4))
         }
+        
+        // For GitHub URLs, convert to raw content URL
+        if baseURLString.contains("github.com") {
+            baseURLString = baseURLString
+                .replacingOccurrences(of: "github.com", with: "raw.githubusercontent.com")
+                .replacingOccurrences(of: "/tree/", with: "/")
+                .appending("/main")
+        }
+        
+        // Load vocabulary.yaml
+        let vocabURLString = baseURLString + "/vocabulary.yaml"
+        if let vocabData = try await fetchAndDecodeYAML(urlString: vocabURLString, decodeTo: VocabularyData.self) {
+            DispatchQueue.main.async {
+                self.vocabulary = vocabData.vocabulary
+            }
+        }
+        
+        // Load numbers.yaml
+        let numbersURLString = baseURLString + "/numbers.yaml"
+        if let numbersData = try await fetchAndDecodeYAML(urlString: numbersURLString, decodeTo: NumbersData.self) {
+            DispatchQueue.main.async {
+                self.numbers = numbersData.numbers
+            }
+        }
+    }
+    
+    private func fetchAndDecodeYAML<T: Decodable>(urlString: String, decodeTo: T.Type) async throws -> T? {
+        guard let url = URL(string: urlString) else {
+            throw DataFetchError.invalidURL
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let content = String(data: data, encoding: .utf8) ?? ""
+        let decoded = try YAMLDecoder().decode(T.self, from: content)
+        return decoded
     }
     
     private func loadYAMLFile<T: Decodable>(named: String, decodeTo: T.Type) throws -> T? {
-        let filePath = cacheDirectory.appendingPathComponent("repo").appendingPathComponent(named)
+        let filePath = cacheDirectory.appendingPathComponent(named)
         
         guard fileManager.fileExists(atPath: filePath.path) else {
             return nil
@@ -117,14 +168,6 @@ class DataManager: NSObject, ObservableObject {
         let content = try String(contentsOf: filePath, encoding: .utf8)
         let decoded = try YAMLDecoder().decode(T.self, from: content)
         return decoded
-    }
-    
-    private func normalizeGitURL(_ url: String) -> String {
-        // Ensure URL ends with .git for proper git operations
-        if url.hasSuffix(".git") {
-            return url
-        }
-        return url.appending(".git")
     }
 }
 
