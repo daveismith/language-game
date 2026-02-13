@@ -5,6 +5,8 @@ struct NumberQuizGameView: View {
     @EnvironmentObject var dataManager: DataManager
     
     @State private var userInput = ""
+    @FocusState private var isInputFocused: Bool
+    @State private var lastResult: (question: String, userAnswer: String, isCorrect: Bool, correctAnswer: String)?
     
     var body: some View {
         NavigationStack {
@@ -56,12 +58,18 @@ struct NumberQuizGameView: View {
                                 TextField("Enter the Bisaya word", text: $userInput)
                                     .textFieldStyle(.roundedBorder)
                                     .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled(true)
                                     .keyboardType(.alphabet)
-                                
+                                    .focused($isInputFocused)
+                                    .onSubmit { submitAnswer() }
+
                             case .wordToNumber(_):
                                 TextField("Enter the number", text: $userInput)
                                     .textFieldStyle(.roundedBorder)
+                                    .autocorrectionDisabled(true)
                                     .keyboardType(.numberPad)
+                                    .focused($isInputFocused)
+                                    .onSubmit { submitAnswer() }
                                 
                             case .none:
                                 EmptyView()
@@ -77,32 +85,34 @@ struct NumberQuizGameView: View {
                             }
                             .disabled(userInput.isEmpty)
                         }
-                        
-                        // Answer Feedback
-                        if let isCorrect = game.gameState.isAnswerCorrect {
+                        // Show last result (question, user's answer, and correct answer if wrong)
+                        if let res = lastResult {
                             VStack(spacing: 8) {
-                                if isCorrect {
-                                    HStack {
+                                HStack {
+                                    if res.isCorrect {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(.green)
-                                        Text("Correct!")
+                                        Text("Correct")
                                             .fontWeight(.semibold)
-                                    }
-                                } else {
-                                    HStack {
+                                    } else {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundColor(.red)
                                         Text("Incorrect")
                                             .fontWeight(.semibold)
                                     }
                                 }
-                                
-                                Button(action: nextQuestion) {
-                                    Text("Next Question")
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.gray.opacity(0.2))
-                                        .cornerRadius(8)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Question: \(res.question)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("Your answer: \(res.userAnswer)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    if !res.isCorrect {
+                                        Text("Correct answer: \(res.correctAnswer)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
                         }
@@ -140,6 +150,10 @@ struct NumberQuizGameView: View {
             .navigationTitle("Number Quiz")
             .onAppear {
                 startNewGame()
+                // focus the input when switching to this tab
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    isInputFocused = true
+                }
             }
         }
     }
@@ -150,7 +164,35 @@ struct NumberQuizGameView: View {
     }
     
     private func submitAnswer() {
-        _ = game.submitAnswer(userInput)
+        // capture prompt before advancing
+        guard let prompt = game.gameState.currentPrompt else { return }
+
+        let state = game.submitAnswer(userInput)
+
+        // compute question text and correct answer for display
+        var questionText = ""
+        var correctAnswer = ""
+        switch prompt {
+        case .numberToWord(let number):
+            questionText = "Number: \(number)"
+            if let matching = dataManager.numbers.first(where: { $0.value == number }) {
+                correctAnswer = matching.bisaya
+            }
+        case .wordToNumber(let bisaya):
+            questionText = "Bisaya: \(bisaya)"
+            if let matching = dataManager.numbers.first(where: { $0.bisaya.lowercased() == bisaya.lowercased() }) {
+                correctAnswer = String(matching.value)
+            }
+        }
+
+        lastResult = (question: questionText, userAnswer: userInput, isCorrect: state.isAnswerCorrect ?? false, correctAnswer: correctAnswer)
+
+        // advance immediately to a new prompt, clear input and refocus
+        game.nextQuestion()
+        userInput = ""
+        DispatchQueue.main.async {
+            isInputFocused = true
+        }
     }
     
     private func nextQuestion() {

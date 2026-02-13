@@ -83,7 +83,7 @@ class WordleGame: ObservableObject, Game {
         }
 
         // Log the candidate pool
-        print("Wordle pool: \(available.map { $0.word })")
+        // print("Wordle pool: \(available.map { $0.word })")
 
         // Randomize selection from available pool
         currentWord = available.randomElement()
@@ -93,7 +93,7 @@ class WordleGame: ObservableObject, Game {
             if recentWords.count > 20 { recentWords.removeLast() }
             // Persist recent words
             GameManager.shared.updateRecentWords(recentWords)
-            print("Wordle chosen: \(chosen)")
+            // print("Wordle chosen: \(chosen)")
         }
         let length = currentWord?.word.count ?? 5
         gameState = WordleGameState()
