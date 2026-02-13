@@ -49,11 +49,17 @@ Sources/LanguageGame/
 - Xcode 15.0+
 - Swift 5.9+
 
-### Installation
+### Quick Setup (5 minutes)
 
-1. Clone this repository
-2. Open in Xcode
-3. Build and run on an iOS simulator or device
+**[👉 Follow the QUICK_START.md guide](./QUICK_START.md)** for step-by-step instructions to:
+1. Create an Xcode iOS app project
+2. Add the Yams package dependency
+3. Copy source files into the app target
+4. Build and run the app
+
+### For Detailed Setup Instructions
+
+See [XCODE_SETUP.md](./XCODE_SETUP.md) for alternative setup approaches and troubleshooting.
 
 ### Configuration
 

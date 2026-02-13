@@ -1,0 +1,7 @@
+{
+  "projectName": "LanguageGame",
+  "bundleIdentifier": "ca.davidiansmith.language-game",
+  "minimumOSVersion": "17.0",
+  "swiftVersion": "5.9",
+  "platforms": ["iOS"]
+}
