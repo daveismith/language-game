@@ -69,6 +69,8 @@ struct PlayerProgress: Codable {
     var dataSourceURL: String
     var gamesPlayed: [GameStat] = []
     var lastUpdated: Date = Date()
+    var minDifficulty: DifficultyLevel = .easy
+    var maxDifficulty: DifficultyLevel = .hard
     
     mutating func recordGameStat(_ stat: GameStat) {
         gamesPlayed.append(stat)

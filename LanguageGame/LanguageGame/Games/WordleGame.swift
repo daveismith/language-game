@@ -36,6 +36,8 @@ class WordleGame: ObservableObject, Game {
     private var totalAttempts: Int = 0
     private var startTime: Date?
     private let maxAttempts = 6
+    // Keep recent words to avoid repeats
+    private var recentWords: [String] = []
     
     private weak var dataManager: DataManager?
     
@@ -51,12 +53,44 @@ class WordleGame: ObservableObject, Game {
     // MARK: - Game Protocol Implementation
 
     func startNewGame() -> WordleGameState {
-        // Filter words by difficulty and length (max 6 characters) to keep grid manageable
-        let words = (dataManager?.vocabulary ?? []).filter { $0.difficulty == difficulty && $0.word.count <= 6 }
+        // Filter words by difficulty range and length (max 6 characters) to keep grid manageable
+        let minDiff = GameManager.shared.playerProgress.minDifficulty
+        let maxDiff = GameManager.shared.playerProgress.maxDifficulty
+        func diffOrder(_ d: DifficultyLevel) -> Int {
+            switch d {
+            case .easy: return 0
+            case .medium: return 1
+            case .hard: return 2
+            }
+        }
+        let minOrd = diffOrder(minDiff)
+        let maxOrd = diffOrder(maxDiff)
+
+        let words = (dataManager?.vocabulary ?? []).filter { item in
+            let ord = diffOrder(item.difficulty)
+            return ord >= minOrd && ord <= maxOrd && item.word.count <= 6
+        }
         guard !words.isEmpty else { return gameState }
 
-        // Randomize selection
-        currentWord = words.shuffled().first
+        // Exclude recently used words (rotate through pool)
+        var available = words.filter { !recentWords.contains($0.word) }
+        if available.isEmpty {
+            // All words exhausted, reset recent list and allow reuse
+            recentWords = []
+            available = words
+        }
+
+        // Log the candidate pool
+        print("Wordle pool: \(available.map { $0.word })")
+
+        // Randomize selection from available pool
+        currentWord = available.randomElement()
+        if let chosen = currentWord?.word {
+            // Track recent selections (keep up to 20)
+            recentWords.insert(chosen, at: 0)
+            if recentWords.count > 20 { recentWords.removeLast() }
+            print("Wordle chosen: \(chosen)")
+        }
         let length = currentWord?.word.count ?? 5
         gameState = WordleGameState()
         gameState.wordLength = length

@@ -199,19 +199,22 @@ fileprivate struct WordGridView: View {
     var body: some View {
         VStack(spacing: 12) {
             ForEach(0..<rows.count, id: \.self) { rowIndex in
-                HStack(spacing: 6) {
-                    ForEach(0..<rows[rowIndex].count, id: \.self) { col in
-                        let cell = rows[rowIndex][col]
-                        let state = results.indices.contains(rowIndex) && results[rowIndex].indices.contains(col) ? results[rowIndex][col] : .unknown
-                        Text(cell.isEmpty ? "" : cell.uppercased())
-                            .font(.system(.title2, design: .monospaced))
-                            .fontWeight(.bold)
-                            .frame(width: 48, height: 48)
-                            .background(backgroundColor(for: state))
-                            .cornerRadius(6)
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                HStack {
+                    Spacer(minLength: 0)
+                    HStack(spacing: 6) {
+                        ForEach(0..<rows[rowIndex].count, id: \.self) { col in
+                            let cell = rows[rowIndex][col]
+                            let state = results.indices.contains(rowIndex) && results[rowIndex].indices.contains(col) ? results[rowIndex][col] : .unknown
+                            Text(cell.isEmpty ? "" : cell.uppercased())
+                                .font(.system(.title2, design: .monospaced))
+                                .fontWeight(.bold)
+                                .frame(width: 48, height: 48)
+                                .background(backgroundColor(for: state))
+                                .cornerRadius(6)
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                        }
                     }
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
             }
         }

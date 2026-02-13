@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var dataSourceURL = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var minDifficulty: DifficultyLevel = .easy
+    @State private var maxDifficulty: DifficultyLevel = .hard
     
     var body: some View {
         NavigationStack {
@@ -96,14 +98,36 @@ struct SettingsView: View {
                 }
                 
                 // Difficulty Preferences Section
-                Section(header: Text("Game Difficulty")) {
-                    Picker("Default Difficulty", selection: Binding(
-                        get: { DifficultyLevel.medium },
-                        set: { _ in }
-                    )) {
+                Section(header: Text("Game Difficulty Range")) {
+                    Picker("Minimum Difficulty", selection: $minDifficulty) {
                         Text("Easy").tag(DifficultyLevel.easy)
                         Text("Medium").tag(DifficultyLevel.medium)
                         Text("Hard").tag(DifficultyLevel.hard)
+                    }
+                    .onAppear {
+                        minDifficulty = gameManager.playerProgress.minDifficulty
+                        maxDifficulty = gameManager.playerProgress.maxDifficulty
+                    }
+                    .onChange(of: minDifficulty) { oldValue, newValue in
+                        // ensure min <= max
+                        let order: [DifficultyLevel] = [.easy, .medium, .hard]
+                        if order.firstIndex(of: newValue)! > order.firstIndex(of: maxDifficulty)! {
+                            maxDifficulty = newValue
+                        }
+                        gameManager.updateDifficultyRange(min: minDifficulty, max: maxDifficulty)
+                    }
+
+                    Picker("Maximum Difficulty", selection: $maxDifficulty) {
+                        Text("Easy").tag(DifficultyLevel.easy)
+                        Text("Medium").tag(DifficultyLevel.medium)
+                        Text("Hard").tag(DifficultyLevel.hard)
+                    }
+                    .onChange(of: maxDifficulty) { oldValue, newValue in
+                        let order: [DifficultyLevel] = [.easy, .medium, .hard]
+                        if order.firstIndex(of: newValue)! < order.firstIndex(of: minDifficulty)! {
+                            minDifficulty = newValue
+                        }
+                        gameManager.updateDifficultyRange(min: minDifficulty, max: maxDifficulty)
                     }
                 }
                 

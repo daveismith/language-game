@@ -34,6 +34,12 @@ class GameManager: ObservableObject {
         playerProgress.studentName = name
         saveProgress()
     }
+
+    func updateDifficultyRange(min: DifficultyLevel, max: DifficultyLevel) {
+        playerProgress.minDifficulty = min
+        playerProgress.maxDifficulty = max
+        saveProgress()
+    }
     
     func recordGamePlay(gameType: GameType, score: Double, totalAttempts: Int) {
         let stat = GameStat(gameType: gameType, score: score, totalAttempts: totalAttempts)
