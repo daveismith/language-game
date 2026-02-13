@@ -98,6 +98,8 @@ class DataManager: NSObject, ObservableObject {
             do {
                 let content = try String(contentsOf: vocabURL, encoding: .utf8)
                 let vocabData = try YAMLDecoder().decode(VocabularyData.self, from: content)
+                // Cache the content
+                try saveToCacheDirectory(filename: "vocabulary.yaml", content: content)
                 DispatchQueue.main.async {
                     self.vocabulary = vocabData.vocabulary
                 }
@@ -112,6 +114,8 @@ class DataManager: NSObject, ObservableObject {
             do {
                 let content = try String(contentsOf: numbersURL, encoding: .utf8)
                 let numbersData = try YAMLDecoder().decode(NumbersData.self, from: content)
+                // Cache the content
+                try saveToCacheDirectory(filename: "numbers.yaml", content: content)
                 DispatchQueue.main.async {
                     self.numbers = numbersData.numbers
                 }
@@ -140,6 +144,9 @@ class DataManager: NSObject, ObservableObject {
         let vocabURLString = baseURLString + "/vocabulary.yaml"
         do {
             let vocabData = try await fetchAndDecodeYAML(urlString: vocabURLString, decodeTo: VocabularyData.self)
+            // Get the raw content for caching
+            let vocabContent = try await fetchRawYAML(urlString: vocabURLString)
+            try saveToCacheDirectory(filename: "vocabulary.yaml", content: vocabContent)
             DispatchQueue.main.async {
                 self.vocabulary = vocabData.vocabulary
             }
@@ -151,6 +158,9 @@ class DataManager: NSObject, ObservableObject {
         let numbersURLString = baseURLString + "/numbers.yaml"
         do {
             let numbersData = try await fetchAndDecodeYAML(urlString: numbersURLString, decodeTo: NumbersData.self)
+            // Get the raw content for caching
+            let numbersContent = try await fetchRawYAML(urlString: numbersURLString)
+            try saveToCacheDirectory(filename: "numbers.yaml", content: numbersContent)
             DispatchQueue.main.async {
                 self.numbers = numbersData.numbers
             }
@@ -160,14 +170,24 @@ class DataManager: NSObject, ObservableObject {
     }
     
     private func fetchAndDecodeYAML<T: Decodable>(urlString: String, decodeTo: T.Type) async throws -> T {
+        let content = try await fetchRawYAML(urlString: urlString)
+        let decoded = try YAMLDecoder().decode(T.self, from: content)
+        return decoded
+    }
+    
+    private func fetchRawYAML(urlString: String) async throws -> String {
         guard let url = URL(string: urlString) else {
             throw DataFetchError.invalidURL
         }
         
         let (data, _) = try await URLSession.shared.data(from: url)
         let content = String(data: data, encoding: .utf8) ?? ""
-        let decoded = try YAMLDecoder().decode(T.self, from: content)
-        return decoded
+        return content
+    }
+    
+    private func saveToCacheDirectory(filename: String, content: String) throws {
+        let fileURL = cacheDirectory.appendingPathComponent(filename)
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
     }
     
     private func loadYAMLFile<T: Decodable>(named: String, decodeTo: T.Type) throws -> T? {
