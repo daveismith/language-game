@@ -5,10 +5,11 @@ struct WordleGameView: View {
     @EnvironmentObject var dataManager: DataManager
     @EnvironmentObject var gameManager: GameManager
     
-    @State private var inputLetter = ""
+    // input is now handled by on-screen keyboard and stored into the game's current guess row
     @State private var showHint = false
     @State private var hintText = ""
     @State private var showGameOver = false
+    @State private var validationMessage: String?
 
     // no local grid helper: use gameState.guesses and results
     
@@ -91,38 +92,92 @@ struct WordleGameView: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                 } else {
-                    // Input and Controls
+                    // Input and Controls: on-screen keyboard
                     VStack(spacing: 12) {
-                        HStack {
-                            TextField("Enter guess", text: $inputLetter)
-                                .textFieldStyle(.roundedBorder)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.alphabet)
-                                .onChange(of: inputLetter) { oldValue, newValue in
-                                    // keep lowercase and trim to expected length
-                                    inputLetter = newValue.lowercased()
-                                    let maxLen = max(1, game.gameState.wordLength)
-                                    if inputLetter.count > maxLen {
-                                        inputLetter = String(inputLetter.prefix(maxLen))
-                                    }
-                                }
-
-                            Button(action: {
-                                // submit full-word guess
-                                _ = game.guessWord(inputLetter)
-                                inputLetter = ""
-                            }) {
-                                Text("Guess")
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 10)
-                                    .background(Color.blue)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                            .disabled(inputLetter.count != game.gameState.wordLength)
+                        if let validation = validationMessage {
+                            Text(validation)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.top, 4)
                         }
-                        
+
+                        // keyboard rows
+                        let topRow = "qwertyuiop"
+                        let midRow = "asdfghjkl"
+                        let botRow = "zxcvbnm"
+
+                        // compute aggregated letter states from past guesses
+                        let keyStates = aggregateKeyStates()
+
+                        HStack(spacing: 6) {
+                            Spacer(minLength: 0)
+                            ForEach(Array(topRow), id: \.self) { ch in
+                                let s = keyStates[String(ch)] ?? .unknown
+                                Button(action: { appendLetter(String(ch)) }) {
+                                    Text(String(ch).uppercased())
+                                        .fontWeight(.semibold)
+                                        .frame(width: 34, height: 44)
+                                        .background(backgroundColor(for: s))
+                                        .cornerRadius(6)
+                                }
+                                .disabled(game.gameState.isGameOver)
+                            }
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack(spacing: 6) {
+                            Spacer(minLength: 0)
+                            ForEach(Array(midRow), id: \.self) { ch in
+                                let s = keyStates[String(ch)] ?? .unknown
+                                Button(action: { appendLetter(String(ch)) }) {
+                                    Text(String(ch).uppercased())
+                                        .fontWeight(.semibold)
+                                        .frame(width: 34, height: 44)
+                                        .background(backgroundColor(for: s))
+                                        .cornerRadius(6)
+                                }
+                                .disabled(game.gameState.isGameOver)
+                            }
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack(spacing: 6) {
+                            Spacer(minLength: 0)
+                            // Enter to the left of Z
+                            Button(action: enterPressed) {
+                                Text("Enter")
+                                    .fontWeight(.semibold)
+                                    .frame(width: 56, height: 44)
+                                    .background(Color(.systemGray4))
+                                    .cornerRadius(6)
+                            }
+                            .disabled(game.gameState.isGameOver)
+
+                            ForEach(Array(botRow), id: \.self) { ch in
+                                let s = keyStates[String(ch)] ?? .unknown
+                                Button(action: { appendLetter(String(ch)) }) {
+                                    Text(String(ch).uppercased())
+                                        .fontWeight(.semibold)
+                                        .frame(width: 34, height: 44)
+                                        .background(backgroundColor(for: s))
+                                        .cornerRadius(6)
+                                }
+                                .disabled(game.gameState.isGameOver)
+                            }
+
+                            // Backspace to the right of M
+                            Button(action: backspaceLetter) {
+                                Text("⌫")
+                                    .fontWeight(.semibold)
+                                    .frame(width: 56, height: 44)
+                                    .background(Color(.systemGray4))
+                                    .cornerRadius(6)
+                            }
+                            .disabled(game.gameState.isGameOver)
+
+                            Spacer(minLength: 0)
+                        }
+
                         Button(action: toggleHint) {
                             Text("💡 Hint (\(2 - game.gameState.hintsUsed))")
                                 .frame(maxWidth: .infinity)
@@ -131,7 +186,7 @@ struct WordleGameView: View {
                                 .cornerRadius(8)
                         }
                         .disabled(game.gameState.hintsUsed >= 2)
-                        
+
                         if showHint && !hintText.isEmpty {
                             Text(hintText)
                                 .font(.caption)
@@ -163,18 +218,117 @@ struct WordleGameView: View {
     }
     
     private func startNewGame() {
-        inputLetter = ""
         showHint = false
         hintText = ""
         _ = game.startNewGame()
     }
     
     private func guessLetter() {
-        guard !inputLetter.isEmpty else { return }
-        _ = game.guessWord(inputLetter)
-        inputLetter = ""
+        enterPressed()
+    }
+    
+
+    private func currentAttemptIndex() -> Int {
+        return game.gameState.currentAttempt
+    }
+
+    private func currentGuessString() -> String {
+        let attempt = currentAttemptIndex()
+        guard game.gameState.guesses.indices.contains(attempt) else { return "" }
+        return game.gameState.guesses[attempt].joined()
+    }
+
+    private func updateLetter(at index: Int, with letter: String) {
+        var gs = game.gameState
+        let attempt = currentAttemptIndex()
+        guard gs.guesses.indices.contains(attempt), gs.guesses[attempt].indices.contains(index) else { return }
+        gs.guesses[attempt][index] = letter.lowercased()
+        game.gameState = gs
+    }
+
+    private func appendLetter(_ letter: String) {
+        var gs = game.gameState
+        let attempt = currentAttemptIndex()
+        guard !gs.isGameOver else { return }
+        let length = gs.wordLength
+        guard gs.guesses.indices.contains(attempt) else { return }
+        if let idx = gs.guesses[attempt].firstIndex(where: { $0.isEmpty }) {
+            gs.guesses[attempt][idx] = letter.lowercased()
+            game.gameState = gs
+        }
+    }
+
+    private func backspaceLetter() {
+        var gs = game.gameState
+        let attempt = currentAttemptIndex()
+        guard gs.guesses.indices.contains(attempt) else { return }
+        if let lastIdx = gs.guesses[attempt].lastIndex(where: { !$0.isEmpty }) {
+            gs.guesses[attempt][lastIdx] = ""
+            game.gameState = gs
+        }
+    }
+
+    private func enterPressed() {
+        let cleaned = currentGuessString().trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let expectedLen = max(1, game.gameState.wordLength)
+        guard cleaned.count == expectedLen else {
+            validationMessage = "Guess must be \(expectedLen) letters"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { validationMessage = nil }
+            return
+        }
+
+        // Validate against the full vocabulary (not filtered by difficulty)
+        let allWords = dataManager.vocabulary.map { $0.word.lowercased() }
+        guard allWords.contains(cleaned) else {
+            validationMessage = "Word not in list"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { validationMessage = nil }
+            return
+        }
+
+        _ = game.guessWord(cleaned)
+        // clear any transient state (hints)
         showHint = false
         hintText = ""
+        validationMessage = nil
+    }
+
+    // Aggregate per-letter state from completed guess results.
+    // Priority: correct > present > absent > unknown
+    private func aggregateKeyStates() -> [String: LetterResult] {
+        var map: [String: LetterResult] = [:]
+        for r in 0..<game.gameState.results.count {
+            let row = game.gameState.results[r]
+            // only consider rows that have been submitted (attempt < currentAttempt or if isGameOver)
+            if r >= game.gameState.currentAttempt && !game.gameState.isGameOver { break }
+            for i in 0..<row.count {
+                let res = row[i]
+                // if the corresponding guessed letter exists, use it
+                if game.gameState.guesses.indices.contains(r) && game.gameState.guesses[r].indices.contains(i) {
+                    let letter = game.gameState.guesses[r][i].lowercased()
+                    guard !letter.isEmpty else { continue }
+                    let prev = map[letter] ?? .unknown
+                    switch (prev, res) {
+                    case (.correct, _): continue
+                    case (_, .correct): map[letter] = .correct
+                    case (.present, _): continue
+                    case (_, .present): map[letter] = .present
+                    case (.absent, _): continue
+                    case (_, .absent): map[letter] = .absent
+                    default: break
+                    }
+                }
+            }
+        }
+        return map
+    }
+
+    private func backgroundColor(for state: LetterResult) -> Color {
+        switch state {
+        case .unknown: return Color(.systemGray5)
+        case .absent: return Color(.systemGray3)
+        case .present: return Color.yellow.opacity(0.8)
+        case .correct: return Color.green.opacity(0.8)
+        }
     }
     
     private func toggleHint() {

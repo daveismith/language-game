@@ -71,9 +71,14 @@ struct PlayerProgress: Codable {
     var lastUpdated: Date = Date()
     var minDifficulty: DifficultyLevel = .easy
     var maxDifficulty: DifficultyLevel = .hard
+    var recentWords: [String] = []
     
     mutating func recordGameStat(_ stat: GameStat) {
         gamesPlayed.append(stat)
+    }
+
+    mutating func updateRecentWords(_ words: [String]) {
+        recentWords = words
     }
 }
 

@@ -19,7 +19,7 @@ let package = Package(
         .target(
             name: "LanguageGame",
             dependencies: ["Yams"],
-            path: "Sources/LanguageGame"
+            path: "LanguageGame/LanguageGame"
         )
     ]
 )

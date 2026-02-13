@@ -43,6 +43,8 @@ class WordleGame: ObservableObject, Game {
     
     init(dataManager: DataManager = DataManager.shared) {
         self.dataManager = dataManager
+        // Load persisted recentWords from GameManager
+        recentWords = GameManager.shared.playerProgress.recentWords
     }
 
     // Allow views to attach the environment DataManager instance
@@ -89,6 +91,8 @@ class WordleGame: ObservableObject, Game {
             // Track recent selections (keep up to 20)
             recentWords.insert(chosen, at: 0)
             if recentWords.count > 20 { recentWords.removeLast() }
+            // Persist recent words
+            GameManager.shared.updateRecentWords(recentWords)
             print("Wordle chosen: \(chosen)")
         }
         let length = currentWord?.word.count ?? 5

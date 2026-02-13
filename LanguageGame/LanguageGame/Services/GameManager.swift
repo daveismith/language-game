@@ -40,6 +40,11 @@ class GameManager: ObservableObject {
         playerProgress.maxDifficulty = max
         saveProgress()
     }
+
+    func updateRecentWords(_ words: [String]) {
+        playerProgress.recentWords = words
+        saveProgress()
+    }
     
     func recordGamePlay(gameType: GameType, score: Double, totalAttempts: Int) {
         let stat = GameStat(gameType: gameType, score: score, totalAttempts: totalAttempts)
