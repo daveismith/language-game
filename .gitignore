@@ -1,0 +1,36 @@
+# Xcode
+*.pbxproj
+*.pbxuser
+*.perspectivev3
+*.xcworkspace/
+xcuserdata/
+*.xcodeproj/
+DerivedData/
+*.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Build
+build/
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDEs
+.vscode/
+.idea/
+.vim/
+
+# Swift Package Manager
+.swiftpm/xcode/package.xcworkspace/
+
+# Debug
+*.dSYM/
+*.o
+*.d
+
+# Testing
+.coverage/
