@@ -95,22 +95,28 @@ class DataManager: NSObject, ObservableObject {
         // Try to load vocabulary.yaml
         let vocabURL = baseURL.appendingPathComponent("vocabulary.yaml")
         if fileManager.fileExists(atPath: vocabURL.path) {
-            let content = try String(contentsOf: vocabURL, encoding: .utf8)
-            if let vocabData = try YAMLDecoder().decode(VocabularyData.self, from: content) {
+            do {
+                let content = try String(contentsOf: vocabURL, encoding: .utf8)
+                let vocabData = try YAMLDecoder().decode(VocabularyData.self, from: content)
                 DispatchQueue.main.async {
                     self.vocabulary = vocabData.vocabulary
                 }
+            } catch {
+                // Silently fail for individual files
             }
         }
         
         // Try to load numbers.yaml
         let numbersURL = baseURL.appendingPathComponent("numbers.yaml")
         if fileManager.fileExists(atPath: numbersURL.path) {
-            let content = try String(contentsOf: numbersURL, encoding: .utf8)
-            if let numbersData = try YAMLDecoder().decode(NumbersData.self, from: content) {
+            do {
+                let content = try String(contentsOf: numbersURL, encoding: .utf8)
+                let numbersData = try YAMLDecoder().decode(NumbersData.self, from: content)
                 DispatchQueue.main.async {
                     self.numbers = numbersData.numbers
                 }
+            } catch {
+                // Silently fail for individual files
             }
         }
     }
@@ -132,22 +138,28 @@ class DataManager: NSObject, ObservableObject {
         
         // Load vocabulary.yaml
         let vocabURLString = baseURLString + "/vocabulary.yaml"
-        if let vocabData = try await fetchAndDecodeYAML(urlString: vocabURLString, decodeTo: VocabularyData.self) {
+        do {
+            let vocabData = try await fetchAndDecodeYAML(urlString: vocabURLString, decodeTo: VocabularyData.self)
             DispatchQueue.main.async {
                 self.vocabulary = vocabData.vocabulary
             }
+        } catch {
+            // Silently fail - optional file
         }
         
         // Load numbers.yaml
         let numbersURLString = baseURLString + "/numbers.yaml"
-        if let numbersData = try await fetchAndDecodeYAML(urlString: numbersURLString, decodeTo: NumbersData.self) {
+        do {
+            let numbersData = try await fetchAndDecodeYAML(urlString: numbersURLString, decodeTo: NumbersData.self)
             DispatchQueue.main.async {
                 self.numbers = numbersData.numbers
             }
+        } catch {
+            // Silently fail - optional file
         }
     }
     
-    private func fetchAndDecodeYAML<T: Decodable>(urlString: String, decodeTo: T.Type) async throws -> T? {
+    private func fetchAndDecodeYAML<T: Decodable>(urlString: String, decodeTo: T.Type) async throws -> T {
         guard let url = URL(string: urlString) else {
             throw DataFetchError.invalidURL
         }
