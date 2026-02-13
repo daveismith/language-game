@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  language-game
+//  LanguageGame
 //
 //  Created by David Smith on 2026-02-12.
 //

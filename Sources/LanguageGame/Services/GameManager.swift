@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 class GameManager: ObservableObject {
     @Published var playerProgress: PlayerProgress
