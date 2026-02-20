@@ -61,6 +61,7 @@ struct NumberQuizGameView: View {
                                     .autocorrectionDisabled(true)
                                     .keyboardType(.alphabet)
                                     .focused($isInputFocused)
+                                    .submitLabel(.done)
                                     .onSubmit { submitAnswer() }
 
                             case .wordToNumber(_):
@@ -69,6 +70,7 @@ struct NumberQuizGameView: View {
                                     .autocorrectionDisabled(true)
                                     .keyboardType(.numberPad)
                                     .focused($isInputFocused)
+                                    .submitLabel(.done)
                                     .onSubmit { submitAnswer() }
                                 
                             case .none:
@@ -187,10 +189,10 @@ struct NumberQuizGameView: View {
 
         lastResult = (question: questionText, userAnswer: userInput, isCorrect: state.isAnswerCorrect ?? false, correctAnswer: correctAnswer)
 
-        // advance immediately to a new prompt, clear input and refocus
+        // advance immediately to a new prompt, clear input and refocus (after a short delay so the new TextField is present)
         game.nextQuestion()
         userInput = ""
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             isInputFocused = true
         }
     }
